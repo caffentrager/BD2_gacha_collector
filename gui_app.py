@@ -417,14 +417,21 @@ class GachaApp:
     def _recalc_grid_cols(self, canvas_width: int):
         if canvas_width <= 0:
             return
-        # 카드 한 칸의 실제 총 폭:
-        #   padx=4 양쪽 = 8px  +  highlightthickness=2 양쪽 = 4px  → 합계 12px
-        CARD_PAD = 12
-        per_card_w = self.base_card_w + CARD_PAD
-        cols = max(1, min(MAX_GRID_COLS, canvas_width // per_card_w))
+        # 카드 한 칸의 실제 총 폭 (실측):
+        #   grid padx=4 양쪽   = 8px
+        #   highlightthickness=2 양쪽 = 4px
+        #   img_lbl padx=4 양쪽 = 8px
+        #   합계 = 20px
+        CARD_PAD = 20
+        # 오른쪽 여백: 스크롤바 등 레이아웃 오차 흡수용 버퍼
+        RIGHT_MARGIN = 12
+        effective_width = canvas_width - RIGHT_MARGIN
 
-        # 실제 카드 폭 = 캔버스를 균등 분할 (여백 꽉 채움)
-        new_card_w = max(60, (canvas_width - CARD_PAD * cols) // cols)
+        per_card_w = self.base_card_w + CARD_PAD
+        cols = max(1, min(MAX_GRID_COLS, effective_width // per_card_w))
+
+        # 실제 카드 폭 = 유효 폭을 균등 분할
+        new_card_w = max(60, (effective_width - CARD_PAD * cols) // cols)
         new_card_h = int(new_card_w * (CARD_H / CARD_W))
 
         cols_changed = (cols != self.grid_cols)
