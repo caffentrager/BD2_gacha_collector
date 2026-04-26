@@ -77,6 +77,8 @@ class GachaApp:
         self.is_running   = False
         self.card_w       = CARD_W
         self.card_h       = CARD_H
+        self.base_card_w  = CARD_W   # 열 수 계산 기준폭 (줌 조절 시 이것을 변경)
+        self._resize_job  = None     # 리사이즈 디바운스 핸들
         self.grid_cols    = 5
         self.search_var   = tk.StringVar(value="")
         self.sort_var     = tk.StringVar(value="번호순")
@@ -347,7 +349,11 @@ class GachaApp:
 
     def _on_canvas_configure(self, event):
         self.canvas.itemconfig(self._cwin, width=event.width)
-        self._recalc_grid_cols(event.width)
+        # 디바운스: 리사이즈 중 수백 번 호출 방지 (150ms 후 한 번만 실행)
+        if hasattr(self, '_resize_job') and self._resize_job:
+            self.root.after_cancel(self._resize_job)
+        w = event.width
+        self._resize_job = self.root.after(150, lambda: self._recalc_grid_cols(w))
 
     def _bind_shortcuts(self):
         self.root.bind_all("<Control-f>", self._shortcut_focus_search)
@@ -384,31 +390,52 @@ class GachaApp:
 
     def _change_zoom(self, direction: int):
         step_w = 6
-        step_h = 12
-        new_w = max(60, min(160, self.card_w + (step_w * direction)))
-        new_h = max(120, min(360, self.card_h + (step_h * direction)))
-        if new_w == self.card_w and new_h == self.card_h:
+        new_base = max(60, min(160, self.base_card_w + (step_w * direction)))
+        if new_base == self.base_card_w:
             return
-        self.card_w = new_w
-        self.card_h = new_h
-        self.zoom_lbl.config(text=f"줌 {self.card_w}x{self.card_h}")
-        self._reload_characters_from_db()
+        self.base_card_w = new_base
+        # 현재 캔버스 폭으로 재계산
+        cw = self.canvas.winfo_width()
+        if cw > 0:
+            self._recalc_grid_cols(cw)
+        else:
+            self._reload_characters_from_db()
         self._log(f"🔎 카드 확대/축소: {self.card_w}x{self.card_h}")
 
     def _reset_zoom(self):
-        self.card_w = CARD_W
-        self.card_h = CARD_H
+        self.base_card_w = CARD_W
+        cw = self.canvas.winfo_width()
+        if cw > 0:
+            self._recalc_grid_cols(cw)
+        else:
+            self.card_w = CARD_W
+            self.card_h = CARD_H
+            self._reload_characters_from_db()
         self.zoom_lbl.config(text=f"줌 {self.card_w}x{self.card_h}")
-        self._reload_characters_from_db()
         self._log("🔎 카드 줌 기본값으로 리셋")
 
     def _recalc_grid_cols(self, canvas_width: int):
-        # 카드 프레임 가로폭 + 좌우 간격 대략치
-        per_card_w = self.card_w + 16
+        if canvas_width <= 0:
+            return
+        # 카드 한 칸의 실제 총 폭:
+        #   padx=4 양쪽 = 8px  +  highlightthickness=2 양쪽 = 4px  → 합계 12px
+        CARD_PAD = 12
+        per_card_w = self.base_card_w + CARD_PAD
         cols = max(1, min(MAX_GRID_COLS, canvas_width // per_card_w))
-        if cols != self.grid_cols:
+
+        # 실제 카드 폭 = 캔버스를 균등 분할 (여백 꽉 채움)
+        new_card_w = max(60, (canvas_width - CARD_PAD * cols) // cols)
+        new_card_h = int(new_card_w * (CARD_H / CARD_W))
+
+        cols_changed = (cols != self.grid_cols)
+        size_changed = (new_card_w != self.card_w)
+
+        if cols_changed or size_changed:
             self.grid_cols = cols
-            self._reflow_grid()
+            self.card_w    = new_card_w
+            self.card_h    = new_card_h
+            self.zoom_lbl.config(text=f"줌 {self.card_w}x{self.card_h}")
+            self._reload_characters_from_db()
             self._update_status_bar()
 
     def _reflow_grid(self):

@@ -66,25 +66,25 @@ RAINBOW_Y_BOTTOM = 570
 # ══════════════════════════════════════════
 # 5성 실측: 고채도픽셀 6456~10113, 색상분산 21~45
 # 비5성 실측: 고채도픽셀 0~1444,   색상분산 0~28
-SSR_MIN_HI_SAT_PIXELS  = 3000   # 이 이상이어야 5성 후보
-SSR_MIN_HUE_VARIANCE   = 18     # 색상 분산 최솟값
-SSR_SAT_THRESHOLD      = 60     # 고채도 판단 기준 (HSV S값)
+SSR_MIN_HI_SAT_PIXELS  = 3000
+SSR_MIN_HUE_VARIANCE   = 18.0
+SSR_SAT_THRESHOLD      = 60
 
 # ══════════════════════════════════════════
 #  이미지 중복 감지 (pHash)
 # ══════════════════════════════════════════
-PHASH_THRESHOLD = 8   # 해밍 거리 임계값 (낮을수록 엄격)
-RUN_DUPLICATE_CHECK_EACH_PULL = True  # 회차 종료 시 DB 중복 병합 검사 실행
+PHASH_THRESHOLD = 12   # 실측: 중복쌍 최대거리=10, 비중복쌍 최소거리=26 → 12로 여유있게 설정
+RUN_DUPLICATE_CHECK_EACH_PULL = False
 
 # ══════════════════════════════════════════
 #  타이밍 (초)
 # ══════════════════════════════════════════
-DELAY_AFTER_REROLL  = 0.8    # 다시! 뽑기 클릭 후 팝업 대기
-DELAY_AFTER_POPUP   = 0.4    # 확인 클릭 후 대기
-DELAY_AFTER_SKIP    = 0.6    # 스킵 후 다음 화면 대기
-DELAY_STATE_CHECK   = 0.3    # 상태 감지 폴링 간격
+DELAY_AFTER_REROLL  = 0.8
+DELAY_AFTER_POPUP   = 0.4
+DELAY_AFTER_SKIP    = 0.6
+DELAY_STATE_CHECK   = 0.3
 MAX_SKIP_ATTEMPTS   = 10     # 결과 화면 도달 최대 스킵 횟수
-MAX_PULLS_LIMIT     = 0      # 0=무제한, 양수=해당 회차 수집 후 자동 종료
+MAX_PULLS_LIMIT     = 0
 
 # ══════════════════════════════════════════
 #  단축키
@@ -122,11 +122,11 @@ DISCORD_NOTIFY_ON_STOP = True
 DISCORD_NOTIFY_ON_TARGET = True
 DISCORD_NOTIFY_ON_DEDUPE = False
 DISCORD_NOTIFY_ON_ERROR = True
-DISCORD_WEBHOOK_URL = ""   # 비워두면 알림 없음
+DISCORD_WEBHOOK_URL = ''
 
 # Discord 메시지 템플릿
-DISCORD_TEMPLATE_START = "▶ 가챠 수집 시작"
-DISCORD_TEMPLATE_STOP = "■ 가챠 수집 종료\n- 회차: {pull_count}회\n- 5성: {ssr_count}개\n- 소요: {elapsed_mm}분{elapsed_ss}초"
-DISCORD_TEMPLATE_TARGET = "🎯 목표 캐릭터 달성: #{char_number:03d}"
-DISCORD_TEMPLATE_DEDUPE = "🔁 중복 병합 발생: {merged}건 (검사 {checked}종)"
-DISCORD_TEMPLATE_ERROR = "⚠ 가챠 수집 오류: {error}"
+DISCORD_TEMPLATE_START = '▶ 가챠 수집 시작'
+DISCORD_TEMPLATE_STOP = '■ 가챠 수집 종료\n- 회차: {pull_count}회\n- 5성: {ssr_count}개\n- 소요: {elapsed_mm}분{elapsed_ss}초'
+DISCORD_TEMPLATE_TARGET = '🎯 목표 캐릭터 달성: #{char_number:03d}'
+DISCORD_TEMPLATE_DEDUPE = '🔁 중복 병합 발생: {merged}건 (검사 {checked}종)'
+DISCORD_TEMPLATE_ERROR = '⚠ 가챠 수집 오류: {error}'

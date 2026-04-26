@@ -110,34 +110,36 @@ def init_db():
 
 # ══════════════════════════════════════════
 #  pHash 유틸
+#  - 카드 배경(무지개 글리터)은 매번 달라서 전체 이미지 비교 시 오탐 발생
+#  - 캐릭터 얼굴/몸통 영역(상 15% ~ 하 65%)만 crop하여 phash 계산
+#  - 실측 검증: 중복쌍 최대거리=10, 비중복쌍 최소거리=26, 갭=+16
 # ══════════════════════════════════════════
+PHASH_CROP_Y1 = 0.15
+PHASH_CROP_Y2 = 0.65
+
+
 def _normalize_card_for_hash(card_bgr: np.ndarray) -> Image.Image:
     """
-    테두리/배지/반짝임 영향을 줄이기 위해 카드 중심부만 사용해 해시용 이미지를 만든다.
+    캐릭터 본체 영역(y: 15%~65%)만 crop하여 pHash용 이미지를 만든다.
+    배경 글리터/반짝임 영향을 배제하고 RGB 그대로 사용 (그레이 변환 불필요).
     """
-    h, w = card_bgr.shape[:2]
-    x1 = int(w * 0.14)
-    x2 = int(w * 0.86)
-    y1 = int(h * 0.18)
-    y2 = int(h * 0.84)
-
-    core = card_bgr[y1:y2, x1:x2]
-    if core.size == 0:
-        core = card_bgr
-
-    gray = cv2.cvtColor(core, cv2.COLOR_BGR2GRAY)
-    gray = cv2.equalizeHist(gray)
-    gray = cv2.GaussianBlur(gray, (3, 3), 0)
-    return Image.fromarray(gray)
+    h = card_bgr.shape[0]
+    y1 = int(h * PHASH_CROP_Y1)
+    y2 = int(h * PHASH_CROP_Y2)
+    body = card_bgr[y1:y2, :]
+    if body.size == 0:
+        body = card_bgr
+    rgb = cv2.cvtColor(body, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(rgb)
 
 
 def _normalize_card_for_compare(card_bgr: np.ndarray) -> np.ndarray:
-    """중복 비교용 정규화 이미지 (grayscale, fixed size)."""
+    """중복 비교용 정규화 이미지 (grayscale, fixed size, 같은 영역 기준)."""
     h, w = card_bgr.shape[:2]
-    x1 = int(w * 0.14)
-    x2 = int(w * 0.86)
-    y1 = int(h * 0.18)
-    y2 = int(h * 0.84)
+    y1 = int(h * PHASH_CROP_Y1)
+    y2 = int(h * PHASH_CROP_Y2)
+    x1 = int(w * 0.10)
+    x2 = int(w * 0.90)
 
     core = card_bgr[y1:y2, x1:x2]
     if core.size == 0:
@@ -187,12 +189,13 @@ def _shifted_similarity(a: np.ndarray, b: np.ndarray, max_shift: int = 10) -> fl
 def _is_probable_duplicate(hash_dist: int, sim: float) -> bool:
     """
     보수적 병합 기준:
-    - 기본: 해시 거리 <= PHASH_THRESHOLD
-    - 보완: 해시 거리 <= PHASH_THRESHOLD+5 AND 유사도 >= 0.93
+    - 기본: 해시 거리 <= PHASH_THRESHOLD (12)
+    - 보완: 해시 거리 <= PHASH_THRESHOLD+4 AND 유사도 >= 0.93
+      (실측: 중복쌍 최대=10, 비중복쌍 최소=26, 임계값 12는 충분한 마진)
     """
     if hash_dist <= PHASH_THRESHOLD:
         return True
-    return (hash_dist <= PHASH_THRESHOLD + 5) and (sim >= 0.93)
+    return (hash_dist <= PHASH_THRESHOLD + 4) and (sim >= 0.93)
 
 
 def _compute_phash(card_bgr: np.ndarray) -> imagehash.ImageHash:
